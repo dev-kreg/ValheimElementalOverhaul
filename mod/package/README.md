@@ -52,4 +52,4 @@ Useful ones:
 
 ## Feedback
 
-This is a beta. If an effect looks wrong on a particular creature or in a particular light, a screenshot helps a lot.
+This is a beta. If an effect looks wrong on a particular creature or in a particular light, a screenshot helps a lot. Source and issues: https://github.com/dev-kreg/ValheimElementalOverhaul

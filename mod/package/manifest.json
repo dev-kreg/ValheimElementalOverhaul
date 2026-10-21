@@ -1,7 +1,7 @@
 {
   "name": "ElementalOverhaul",
   "version_number": "0.9.0",
-  "website_url": "",
+  "website_url": "https://github.com/dev-kreg/ValheimElementalOverhaul",
   "description": "Fire, frost, poison, lightning and spirit status effects drawn on the creature's body instead of stacked particle clouds, with unique looks for element combos and all five at once. Client-side and fully configurable.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2351"
