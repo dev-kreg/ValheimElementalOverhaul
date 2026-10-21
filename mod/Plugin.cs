@@ -95,6 +95,8 @@ namespace ElementalOverhaul
                             {
                                 Capture(e.m_prefab);
                                 if (!Overhaul && names.Contains(se.name)) Shrink(e.m_prefab);
+                                // start effects are hidden per instance in OnStart; the rest (poison's per-second tick cloud) on the prefab
+                                if (Overhaul && field.Name != "m_startEffects") Hide(e.m_prefab);
                             }
         }
 
@@ -116,13 +118,8 @@ namespace ElementalOverhaul
             if (___m_startEffectInstances == null || !___m_character || Overlay.Slot(__instance.NameHash()) < 0) return;
             if (Overhaul)
             {
-                // hide vanilla visuals but keep their sounds
                 foreach (var go in ___m_startEffectInstances)
-                    if (go)
-                    {
-                        foreach (var r in go.GetComponentsInChildren<ParticleSystemRenderer>(true)) r.enabled = false;
-                        foreach (var l in go.GetComponentsInChildren<Light>(true)) l.enabled = false;
-                    }
+                    if (go) Hide(go);
                 return;
             }
             if (!surface.Value) return;
@@ -141,6 +138,13 @@ namespace ElementalOverhaul
                         sh.rotation = Vector3.zero;
                         sh.scale = Vector3.one;
                     }
+        }
+
+        // hide vanilla visuals but keep their sounds
+        static void Hide(GameObject go)
+        {
+            foreach (var r in go.GetComponentsInChildren<ParticleSystemRenderer>(true)) r.enabled = false;
+            foreach (var l in go.GetComponentsInChildren<Light>(true)) l.enabled = false;
         }
 
         public static SkinnedMeshRenderer Body(Character c) => c.GetComponentsInChildren<SkinnedMeshRenderer>()
