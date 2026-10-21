@@ -1,0 +1,14 @@
+# tcli publish config, used by ./pack.sh publish. Version is read from the zip.
+[config]
+schemaVersion = "0.0.1"
+
+[package]
+namespace = "dev-kreg"
+name = "ElementalOverhaul"
+
+[publish]
+repository = "https://thunderstore.io"
+communities = ["valheim"]
+
+[publish.categories]
+valheim = ["client-side", "mods"]

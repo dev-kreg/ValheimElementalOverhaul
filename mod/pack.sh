@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build the Thunderstore zip: package/ (manifest, README, CHANGELOG, icon) + the plugin and both shader bundles at the root.
+# Build the Thunderstore zip (`./pack.sh publish` also uploads it; needs TCLI_AUTH_TOKEN): package/ (manifest, README, CHANGELOG, icon) + the plugin and both shader bundles at the root.
 set -e
 cd "$(dirname "$0")"
 dotnet build -c Release >/dev/null
@@ -15,3 +15,4 @@ with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
         z.write(f, os.path.basename(f))
 PY
 echo "$OUT"
+[ "$1" = publish ] && ~/.dotnet/tools/tcli publish --file "$OUT"
