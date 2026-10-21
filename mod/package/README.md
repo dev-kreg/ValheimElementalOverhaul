@@ -4,6 +4,12 @@ Hitting something with a multi-element weapon in vanilla Valheim stacks one big 
 
 ElementalOverhaul replaces those clouds with effects drawn **on the creature's body**:
 
+| Fire | Frost | Poison |
+|---|---|---|
+| ![Fire](https://raw.githubusercontent.com/dev-kreg/ValheimElementalOverhaul/main/docs/fire.gif) | ![Frost](https://raw.githubusercontent.com/dev-kreg/ValheimElementalOverhaul/main/docs/frost.gif) | ![Poison](https://raw.githubusercontent.com/dev-kreg/ValheimElementalOverhaul/main/docs/poison.gif) |
+| **Spirit** | **Steam (fire + frost)** | **Ragnarok (all five)** |
+| ![Spirit](https://raw.githubusercontent.com/dev-kreg/ValheimElementalOverhaul/main/docs/spirit.gif) | ![Steam](https://raw.githubusercontent.com/dev-kreg/ValheimElementalOverhaul/main/docs/steam.gif) | ![Ragnarok](https://raw.githubusercontent.com/dev-kreg/ValheimElementalOverhaul/main/docs/ragnarok.gif) |
+
 | Element | Look |
 |---|---|
 | Fire | The game's own flames licking off the body, charred skin, smouldering heat patches, flickering firelight |

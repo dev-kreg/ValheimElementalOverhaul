@@ -3,7 +3,7 @@
 schemaVersion = "0.0.1"
 
 [package]
-namespace = "dev-kreg"
+namespace = "Shashank"
 name = "ElementalOverhaul"
 
 [publish]

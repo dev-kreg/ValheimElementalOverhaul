@@ -11,7 +11,7 @@ namespace ElementalOverhaul
     // on a target hit by a multi-element weapon:
     //   Overhaul: hide the vanilla particles and lights, draw the effect on the creature's skin, add a few surface particles.
     //   Quiet: keep the vanilla effects but shrink them (prefabs edited once, so changes need a restart).
-    [BepInPlugin("ElementalOverhaul", "ElementalOverhaul", "0.9.0")]
+    [BepInPlugin("ElementalOverhaul", "ElementalOverhaul", "0.9.1")]
     public class Plugin : BaseUnityPlugin
     {
         public enum Style { Overhaul, Quiet }

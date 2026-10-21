@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+- Poison's per-second tick cloud is hidden in Overhaul mode too.
+- Preview GIFs on the mod page.
+
 ## 0.9.0
 - First public beta.
 - Elemental status effects drawn on the creature's skin: char and flames for fire, frost crust and cracks, poison veins and bubbles, lightning arc bursts, a hollow spirit rim.
