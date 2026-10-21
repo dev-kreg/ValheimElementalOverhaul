@@ -1,0 +1,8 @@
+Library/
+Temp/
+Logs/
+Build/
+UserSettings/
+build.log
+preview/data/
+preview/elemental-vfx.html

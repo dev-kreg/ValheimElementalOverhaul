@@ -1,0 +1,1097 @@
+<title>Elemental Hit VFX</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control strip over two matched viewports (vanilla | mod), then the game-data ledger. Single dark theme by choice: it mirrors a night scene in the game. */
+:root {
+  --bg: #13120f;
+  --surface: #1c1a16;
+  --raise: #25221d;
+  --line: #36322b;
+  --fg: #ebe4d6;
+  --muted: #a39a89;
+  --brass: #c9a86a;
+  --fire: #f08a43;
+  --frost: #9fd2f5;
+  --poison: #a6d64a;
+  --lightning: #5fd8ff;
+  --spirit: #79dcc0;
+  --display: "Grenze", "Palatino Linotype", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 600; letter-spacing: .01em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.05; }
+h2 { font-size: 26px; line-height: 1.15; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); }
+.lede b { color: var(--fg); font-weight: 500; }
+header { display: grid; gap: 10px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brass); }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px 28px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.group { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.label { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { --c: var(--brass); font: 500 13px/1 var(--body); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px 7px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--c); }
+.chip[aria-pressed="true"] { color: var(--fg); border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.chip[aria-pressed="true"]::before { background: var(--c); }
+.chip:focus-visible, .seg button:focus-visible, select:focus-visible, input:focus-visible, .play:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; width: max-content; }
+.seg button { font: 500 13px/1 var(--body); color: var(--muted); background: transparent; border: 0; padding: 8px 14px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--fg); }
+select { font: 14px var(--body); color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 5px; padding: 7px 10px; max-width: 100%; }
+.slider { display: grid; grid-template-columns: minmax(0, 1fr) 4.2ch; align-items: center; gap: 10px; }
+.slider label { grid-column: 1 / -1; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.slider label code { font: 12px var(--mono); color: var(--muted); opacity: .75; }
+.slider output { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+input[type=range] { width: 100%; accent-color: var(--brass); }
+.row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+
+.stage { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; }
+figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+.view { position: relative; aspect-ratio: 4 / 3; max-width: 100%; background: #0b0b0a; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.view canvas { width: 100%; height: 100%; display: block; }
+.tag { position: absolute; top: 10px; left: 10px; font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 6px 8px; border-radius: 3px; background: rgba(12, 11, 9, .72); color: var(--fg); }
+.tag.mod { color: var(--brass); }
+figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+figcaption b { color: var(--fg); font-weight: 500; }
+.play { font: 500 13px var(--body); color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 5px; padding: 7px 12px; cursor: pointer; }
+.nogl { padding: 24px; color: var(--muted); }
+
+.tune { display: grid; gap: 14px; }
+.tunehead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { font: 500 13px/1 var(--body); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); background: var(--raise); border-color: var(--brass); }
+.tabs button:focus-visible, .play:focus-visible, .tunegrid input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.tunegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px 28px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.knob { display: grid; grid-template-columns: minmax(0, 1fr) 5ch; gap: 4px 10px; align-items: center; min-width: 0; }
+.knob label { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.knob label span { color: var(--muted); font-size: 12px; text-align: right; }
+.knob output { font: 500 12px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.knob input[type=color] { width: 100%; height: 26px; border: 1px solid var(--line); border-radius: 4px; background: var(--raise); padding: 0 2px; }
+.knob.toggle label { justify-content: flex-start; align-items: baseline; }
+.knob .tgl { color: var(--fg); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
+.knob .tgl input { accent-color: var(--brass); width: 16px; height: 16px; }
+.knob.part label::after { content: "particles"; font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--brass); margin-left: auto; padding-left: 8px; }
+#cfgOut { width: 100%; min-height: 160px; font: 12px var(--mono); color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 5px; padding: 10px; }
+.ledger { display: grid; gap: 14px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font: 500 11px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface); position: sticky; top: 0; }
+td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.num .q { color: var(--brass); }
+tr.el td { background: var(--surface); font-family: var(--display); font-size: 18px; padding-top: 12px; }
+tr.el td span { font: 12px var(--mono); color: var(--muted); margin-left: 10px; }
+.sys { font-family: var(--mono); font-size: 12.5px; }
+.what { color: var(--muted); }
+.thumb { width: 34px; height: 34px; border-radius: 3px; background: #050505; object-fit: contain; display: block; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px 32px; }
+.notes ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); max-width: 64ch; }
+.notes h3 { margin: 0; font: 600 15px var(--body); }
+.lab header, .lab .controls, .lab .ledger, .lab .notes, .lab .tune, .lab .wrap > .row { display: none; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Valheim · status-effect VFX replay</div>
+    <h1>Elemental Hit VFX</h1>
+    <p class="lede">The game files' particle data and creature models, played back in your browser. Each element on your weapon adds its own status effect to the target, and each one brings its own particles and glow light. <b>Left</b> is vanilla. <b>Right</b> is the QuietElements overhaul: effects drawn on the creature's skin, a few particles from its surface, and one shared light. Switch the right panel to <b>Shrink only</b> to see the smaller vanilla effects instead.</p>
+  </header>
+
+  <section class="controls" aria-label="Scene settings">
+    <div class="group">
+      <span class="label" id="elLabel">Weapon elements</span>
+      <div class="chips" id="chips" role="group" aria-labelledby="elLabel"></div>
+    </div>
+    <div class="group">
+      <span class="label">Scene</span>
+      <div class="row">
+        <select id="target" aria-label="Target creature"></select>
+        <div class="seg" id="tod" role="group" aria-label="Time of day">
+          <button type="button" data-v="night" aria-pressed="true">Night</button>
+          <button type="button" data-v="day" aria-pressed="false">Day</button>
+        </div>
+      </div>
+      <div class="slider">
+        <label for="dist">Camera distance <span></span></label>
+        <input type="range" id="dist" min="2.5" max="16" step="0.5" value="5">
+        <output id="distOut" for="dist">5.0 m</output>
+      </div>
+    </div>
+    <div class="group">
+      <span class="label">QuietElements settings</span>
+      <div class="seg" id="mode" role="group" aria-label="Right panel shows">
+        <button type="button" data-v="quiet" aria-pressed="false">Shrink only</button>
+        <button type="button" data-v="overhaul" aria-pressed="true">Overhaul</button>
+      </div>
+      <div class="slider">
+        <label for="mSize">Particle size <code>SizeMultiplier</code></label>
+        <input type="range" id="mSize" min="0.1" max="1" step="0.05" value="0.5">
+        <output id="mSizeOut" for="mSize">0.50</output>
+      </div>
+      <div class="slider">
+        <label for="mEmit">Particle count <code>EmissionMultiplier</code></label>
+        <input type="range" id="mEmit" min="0.05" max="1" step="0.05" value="0.4">
+        <output id="mEmitOut" for="mEmit">0.40</output>
+      </div>
+      <div class="slider">
+        <label for="mLight">Glow light <code>LightMultiplier</code></label>
+        <input type="range" id="mLight" min="0" max="1" step="0.05" value="0.3">
+        <output id="mLightOut" for="mLight">0.30</output>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="Side-by-side replay">
+    <figure>
+      <div class="view"><canvas id="cvA" aria-label="Vanilla effects replay"></canvas><span class="tag">Vanilla</span></div>
+      <figcaption><span><b id="cntA">0</b> particles · <b id="fillA">0%</b> screen fill</span><span id="lgtA"></span></figcaption>
+    </figure>
+    <figure>
+      <div class="view"><canvas id="cvB" aria-label="QuietElements effects replay"></canvas><span class="tag mod" id="tagB">Overhaul</span></div>
+      <figcaption><span><b id="cntB">0</b> particles · <b id="fillB">0%</b> screen fill</span><span id="lgtB"></span></figcaption>
+    </figure>
+  </section>
+  <div class="row"><button type="button" class="play" id="play">Pause</button><span class="lede" style="font-size:13px">Creatures are the real game meshes and textures, shown in their rigged T-pose (no animation). Effects attach at the hitbox center and scale with the hitbox radius, the same way the game sizes them. In the overhaul preview, particles spawn on the mesh surface and the overlay shader is drawn on the skin.</span></div>
+
+  <section class="tune" aria-labelledby="tuneH">
+    <div class="tunehead">
+      <h2 id="tuneH">Tune the overhaul</h2>
+      <div class="row">
+        <button type="button" class="play" id="copyCfg">Copy config</button>
+        <button type="button" class="play" id="resetSec">Reset tab</button>
+        <button type="button" class="play" id="resetAll">Reset all</button>
+      </div>
+    </div>
+    <p class="lede">Every setting here is a QuietElements config option, and the right panel updates as you drag. <b>Copy config</b> gives you text to paste over the matching sections of <code>BepInEx/config/claude.quietelements.cfg</code>; the game picks up the change without a restart.</p>
+    <div class="tabs" id="tuneTabs" role="tablist" aria-label="Setting groups"></div>
+    <div class="tunegrid" id="tuneGrid" role="tabpanel"></div>
+    <p class="lede" id="copyMsg" role="status"></p>
+    <textarea id="cfgOut" readonly hidden aria-label="Exported config"></textarea>
+  </section>
+
+  <section class="ledger" aria-labelledby="ledgerH">
+    <h2 id="ledgerH">What each element spawns</h2>
+    <p class="lede">Every particle system and light in each effect prefab, read from <code>valheim_Data/StreamingAssets/SoftRef/Bundles/c4210710</code>. Rates and sizes are per effect before the hitbox scaling. Brass numbers are the mod's values with the current settings.</p>
+    <div class="tablewrap"><table id="ledger"></table></div>
+  </section>
+
+  <section class="notes" aria-label="Accuracy notes">
+    <div>
+      <h3>Taken directly from the game</h3>
+      <ul>
+        <li>Textures, including the 8×8 fire flipbook</li>
+        <li>Emission rates, particle caps, lifetimes, start sizes, speeds and gravity</li>
+        <li>Color-over-life and size-over-life curves, sampled at 24 points</li>
+        <li>Emitter shapes, velocity, force, rotation and trail settings</li>
+        <li>Glow light color, intensity and range</li>
+        <li>Creature meshes, textures, hitbox sizes and the radius × 2 effect scaling</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Approximated</h3>
+      <ul>
+        <li>Valheim's custom particle shaders are recreated with a simple model: texture × color × tint, plus emission</li>
+        <li>Lit smoke and frost clouds use flat scene lighting instead of the game's deferred lighting</li>
+        <li>Bloom and ACES tonemapping are close to the game's post-processing, but not identical</li>
+        <li>Noise turbulence on embers is a simple flow field</li>
+        <li>No soft-particle fading, no sound, and the target stands still in its T-pose</li>
+      </ul>
+    </div>
+    <div>
+      <h3>How the overhaul stacks</h3>
+      <ul>
+        <li><b>Frost</b> changes the surface: a cold tint, a crust on upward faces, cracked-ice lines and slow glints. Flakes fall.</li>
+        <li><b>Fire</b> glows in thin seams with soot between, and flame tongues lick up the silhouette using the game's own flame flipbook. Embers rise.</li>
+        <li><b>Poison</b> pulses through wandering veins and gives a sickly tint. Drips fall.</li>
+        <li><b>Lightning</b> is intermittent: jagged arcs crawl over a few patches in short bursts, and the light flashes in sync.</li>
+        <li><b>Spirit</b> owns the rim, with wisps rising off the edges.</li>
+        <li>Each element uses a different channel and motion, so several at once still read. Stacked elements share one brightness and particle budget and one light.</li>
+        <li>Layers floating just above the skin carry flame tongues, an ice coat, toxic haze, stray arcs and a ghostly aura.</li>
+        <li>Char spreads the longer something burns, and frost creeps over the body after it lands.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+const DATA = __DATA__;
+const TEX = __TEX__;
+__OVERLAYGEN__
+const LINEAR_TEX = { flameball_big_flipbook: true };
+const MESHES = __MESHES__;
+// Bind-pose creature meshes exported from the game bundle, already placed in the creature's root space (feet at y = 0).
+const CREATURE_MESH = {};
+for (const [name, m] of Object.entries(MESHES)) {
+  const dec = (b64, T) => { const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return new T(u8.buffer); };
+  const pos = dec(m.pos, Float32Array), idx = dec(m.idx, Uint16Array);
+  const cdf = new Float32Array(idx.length / 3); let acc = 0;
+  for (let t = 0; t < cdf.length; t++) {
+    const a = idx[t * 3] * 3, b = idx[t * 3 + 1] * 3, c = idx[t * 3 + 2] * 3;
+    const e1 = [pos[b] - pos[a], pos[b + 1] - pos[a + 1], pos[b + 2] - pos[a + 2]], e2 = [pos[c] - pos[a], pos[c + 1] - pos[a + 1], pos[c + 2] - pos[a + 2]];
+    acc += Math.hypot(e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]) / 2; cdf[t] = acc;
+  }
+  const pickTri = (r) => { const x = r * acc; let lo = 0, hi = cdf.length - 1; while (lo < hi) { const mid = (lo + hi) >> 1; if (cdf[mid] < x) lo = mid + 1; else hi = mid; } return lo; };
+  CREATURE_MESH[name] = { pos, nor: dec(m.nor, Float32Array), uv: dec(m.uv, Float32Array), idx, tex: m.tex, pickTri, area: acc, cut: m.cut ?? -1 };
+}
+
+const ELEMENTS = [
+  { key: "frost", label: "Frost", prefab: "vfx_Frost", color: "var(--frost)" },
+  { key: "poison", label: "Poison", prefab: "vfx_Poison", color: "var(--poison)" },
+  { key: "fire", label: "Fire", prefab: "vfx_Burning", color: "var(--fire)" },
+  { key: "spirit", label: "Spirit", prefab: "vfx_UndeadBurn", color: "var(--spirit)" },
+  { key: "lightning", label: "Lightning", prefab: "fx_Lightning", color: "var(--lightning)" },
+];
+// Capsule colliders from the creature prefabs (radius, height in metres).
+const CREATURES = {
+  Greydwarf: { r: 0.4, h: 1.80, dist: 5 },
+  Wolf: { r: 0.65, h: 1.5, dist: 5 },
+  Troll: { r: 1.0, h: 6.61, dist: 10 },
+  Lox: { r: 1.5, h: 3.5, dist: 10 },
+};
+const WHAT = {
+  flare: "Large soft glow sprite, one per effect",
+  "sparcs (1)": "Drifting embers",
+  "flames (1)": "Main fire body, animated flipbook",
+  "vfx_BloodHit 1": "Ice specks thrown outward",
+  "soft cloud": "Cold mist, world space",
+  "soft cloud (1)": "Cold mist, follows target",
+  smoke_world: "Green poison cloud",
+  Sparcs: "Electric zigzag sparks",
+  trails: "Spirit wisps with trails",
+  flames: "Stretched spirit flames",
+  flames_world: "Spirit flames, world space",
+};
+
+// ---------- tunables (schema from params.json via tools/gen.py) ----------
+const ELEM_KEYS = ["fire", "frost", "poison", "lightning", "spirit"];
+const PARAMS = {}; const PARAM_DEFAULTS = {};
+const lin2srgb = (x) => (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055);
+const srgb2lin = (x) => (x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4));
+const toHex = (c) => c.map((x) => Math.round(clamp01(lin2srgb(x)) * 255).toString(16).padStart(2, "0")).join("").toUpperCase();
+const fromHex = (h) => [0, 2, 4].map((i) => srgb2lin(parseInt(h.slice(i, i + 2), 16) / 255));
+for (const sec of PARAM_SCHEMA) { PARAMS[sec.name] = {}; PARAM_DEFAULTS[sec.name] = {}; for (const [n, t, d] of sec.params) { PARAMS[sec.name][n] = Array.isArray(d) ? d.slice() : d; PARAM_DEFAULTS[sec.name][n] = d; } }
+try { const saved = JSON.parse(localStorage.getItem("qe-params-v3") || "{}"); for (const s in saved) for (const n in saved[s]) if (PARAMS[s] && n in PARAMS[s]) PARAMS[s][n] = saved[s][n]; } catch (e) {}
+const uniformCache = new WeakMap();
+function setParams(gl, prog) {
+  for (const sec of PARAM_SCHEMA) for (const [n, t] of sec.params) {
+    if (t === "p") continue;
+    const loc = prog.u["_" + sec.name + n]; if (!loc) continue;
+    const v = PARAMS[sec.name][n];
+    if (t === "c") gl.uniform3fv(loc, v); else gl.uniform1f(loc, t === "b" ? (v ? 1 : 0) : v);
+  }
+}
+const onSince = {};
+function elemAge(k) { return state.ageOverride != null ? state.ageOverride : Math.max(0, time - (onSince[k] ?? 0)); }
+
+const state = { on: { fire: true, frost: true, lightning: true, poison: false, spirit: false }, target: "Greydwarf", tod: "night", dist: 5, mode: "overhaul", mod: { size: 0.5, emit: 0.4, light: 0.3 }, playing: !matchMedia("(prefers-reduced-motion: reduce)").matches, yaw: 0.27 };
+{
+  const q = new URLSearchParams(location.search);
+  if (q.has("els")) { const on = q.get("els").split(","); for (const k in state.on) state.on[k] = on.includes(k); }
+  for (const k of ["target", "mode", "tod"]) if (q.has(k)) state[k] = q.get(k);
+  for (const k of ["yaw", "dist"]) if (q.has(k)) state[k] = +q.get(k);
+  for (const k of ["size", "emit", "light"]) if (q.has(k)) state.mod[k] = +q.get(k);
+  if (q.has("t")) state.t0 = +q.get("t");
+  if (q.has("play")) state.playing = true;
+  if (q.has("age")) state.ageOverride = +q.get("age");
+  for (const [k, v] of q) { const [sec, n] = k.split("."); if (n && PARAMS[sec] && n in PARAMS[sec]) PARAMS[sec][n] = Array.isArray(PARAMS[sec][n]) ? fromHex(v) : v === "true" ? 1 : v === "false" ? 0 : +v; }
+  if (q.has("lab")) document.documentElement.classList.add("lab");
+}
+
+// ---------- math helpers ----------
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const toLin = (c) => Math.pow(Math.max(c, 0), 2.2);
+function rng(seed) { return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function sample(arr, t) { const x = clamp01(t) * (arr.length - 1); const i = Math.min(Math.floor(x), arr.length - 2); return lerp(arr[i], arr[i + 1], x - i); }
+function sample4(arr, t) { const x = clamp01(t) * (arr.length - 1); const i = Math.min(Math.floor(x), arr.length - 2), f = x - i; return [0, 1, 2, 3].map((k) => lerp(arr[i][k], arr[i + 1][k], f)); }
+function mmAt(c, t, r) { return c.k === "c" ? lerp(c.v[0], c.v[1], r) : lerp(sample(c.a, t), sample(c.b, t), r); }
+function mgAt(g, t, r) {
+  if (g.k === "c") return [0, 1, 2, 3].map((k) => lerp(g.a[k], g.b[k], r));
+  const a = sample4(g.a, t), b = sample4(g.b, t);
+  return [0, 1, 2, 3].map((k) => lerp(a[k], b[k], r));
+}
+function mmMax(c) { return c.k === "c" ? Math.max(c.v[0], c.v[1]) : Math.max(...c.a, ...c.b); }
+function noise3(x, y, z, t) {
+  return [
+    Math.sin(y * 1.7 + t * 1.3) + Math.sin(z * 2.3 + x * 0.7 + t),
+    Math.sin(z * 1.9 + t * 1.1) + Math.sin(x * 2.1 + y * 0.6 - t * 0.8),
+    Math.sin(x * 1.5 - t * 1.2) + Math.sin(y * 2.2 + z * 0.9 + t * 0.7),
+  ].map((v) => v * 0.5);
+}
+
+// ---------- overhaul particle design (my systems, same schema as the extracted game data) ----------
+const C = (a, b = a) => ({ k: "c", v: [a, b] });
+function ramp(stops, n) { const out = []; for (let i = 0; i < 24; i++) { const t = i / 23; let j = 0; while (j < stops.length - 2 && t > stops[j + 1][0]) j++; const A = stops[j], B = stops[j + 1], f = clamp01((t - A[0]) / ((B[0] - A[0]) || 1)); out.push(n === 1 ? lerp(A[1], B[1], f) : [1, 2, 3, 4].map((k) => lerp(A[k], B[k], f))); } return out; }
+const G = (stops) => { const a = ramp(stops, 4); return { k: "g", a, b: a }; };
+const CV = (stops) => { const a = ramp(stops, 1); return { k: "curve", a, b: a }; };
+const sysDef = (o) => Object.assign({ world: true, loop: true, dur: 5, life: C(1), speed: C(0), size: C(0.1), color: { k: "c", a: [1, 1, 1, 1], b: [1, 1, 1, 1] }, grav: C(0), max: 300, rot0: C(0), rate: C(0), bursts: [], shape: null, pos: [0, 0, 0], scale: [1, 1, 1], render: 0, lenScale: 1, velScale: 0, maxScreen: 0.5, tex: "point", blend: "add", tint: [1, 1, 1, 1], emis: [0, 0, 0], lit: 1, scaleMode: 2, gray: false, emisV: false, rendOn: true }, o);
+// density = particles per second per square metre of body surface (mirrors ElementalBody.cs in the mod)
+const OVERHAUL = {
+  fire: { light: { col: [1, 0.6, 0.28], int: 2 }, systems: [
+    sysDef({ name: "tongues", density: 10, tex: "flameball_big_flipbook", gray: true, life: C(0.35, 0.6), size: C(0.35, 0.6), rot0: C(-0.4, 0.4),
+      vel: { x: C(-0.08, 0.08), y: C(0.45, 0.9), z: C(-0.08, 0.08), world: true }, uv: { tx: 8, ty: 8, cycles: 1, start: C(0, 0.9999), fot: CV([[0, 0], [1, 1]]) },
+      render: 1, lenScale: 1.6, velScale: 0.15,
+      col: G([[0, 1, 0.85, 0.5, 0], [0.15, 1, 0.68, 0.28, 0.9], [0.6, 1, 0.42, 0.1, 0.5], [1, 0.6, 0.15, 0.05, 0]]), sol: CV([[0, 0.6], [0.35, 1], [1, 0.4]]) }),
+    sysDef({ name: "embers", density: 1.6, tex: "spark 1", emisV: true, emis: [4, 2.27, 0.09], life: C(1, 2), size: C(0.025, 0.05),
+      color: { k: "c", a: [1, 0.77, 0, 1], b: [1, 1, 1, 1] }, vel: { x: C(0), y: C(0.6, 1.3), z: C(0), world: true }, noise: { str: C(0.6), freq: 1.2, scroll: C(0.1) },
+      col: G([[0, 1, 0.9, 0.5, 0], [0.1, 1, 0.8, 0.4, 1], [1, 1, 0.3, 0.05, 0]]), sol: CV([[0, 1], [1, 0]]) }),
+  ] },
+  frost: { light: { col: [0.6, 0.8, 1], int: 0.5 }, systems: [
+    sysDef({ name: "flakes", density: 2.2, tex: "blood", blend: "alpha", tint: [1.2, 1.2, 1.2, 1], life: C(1.2, 2.2), size: C(0.025, 0.045),
+      color: { k: "c", a: [0.85, 0.93, 1, 0.9], b: [1, 1, 1, 0.9] }, vel: { x: C(-0.05, 0.05), y: C(-0.45, -0.2), z: C(-0.05, 0.05), world: true }, noise: { str: C(0.2), freq: 2, scroll: C(0.05) },
+      col: G([[0, 1, 1, 1, 0], [0.15, 1, 1, 1, 1], [0.8, 1, 1, 1, 1], [1, 1, 1, 1, 0]]) }),
+  ] },
+  poison: { light: { col: [0.5, 0.9, 0.2], int: 0.4 }, systems: [
+    sysDef({ name: "drips", density: 1.3, tex: "blood", blend: "alpha", life: C(0.6, 0.95), size: C(0.03, 0.05),
+      render: 1, lenScale: 2.4, color: { k: "c", a: [0.42, 0.8, 0.08, 0.95], b: [0.55, 0.9, 0.15, 0.95] }, grav: C(0.55),
+      col: G([[0, 1, 1, 1, 0], [0.1, 1, 1, 1, 1], [0.85, 1, 1, 1, 1], [1, 1, 1, 1, 0]]) }),
+  ] },
+  lightning: { light: { col: [0.4, 0.78, 1], int: 1.2, flash: true }, systems: [
+    sysDef({ name: "sparks", density: 2.5, tex: "spark", blend: "alpha", tint: [0, 0, 0, 1], emis: [0, 1.5, 2.12], life: C(0.06, 0.12), size: C(0.16, 0.3), rot0: C(0, 6.28) }),
+  ] },
+  spirit: { light: { col: [0.5, 1, 0.65], int: 1.2 }, systems: [
+    sysDef({ name: "wisps", density: 1.2, tex: "spark 1", emisV: true, emis: [4, 2.27, 0.09], render: 5, life: C(1, 2), size: C(0.02),
+      color: { k: "c", a: [0.01, 0.78, 0.65, 1], b: [0.17, 0.88, 0.79, 1] }, vel: { x: C(0), y: C(0.35, 0.8), z: C(0), world: true }, noise: { str: C(0.5), freq: 1, scroll: C(0.1) },
+      trail: { life: C(0.35), width: CV([[0, 1], [1, 0]]), tex: "point2", col: G([[0, 1, 1, 1, 1], [1, 1, 1, 1, 0]]) },
+      col: G([[0, 1, 0.9, 0.5, 0], [0.1, 1, 0.85, 0.47, 1], [1, 0.9, 0.3, 0.3, 0]]) }),
+  ] },
+};
+// which params drive which particle system (mirrors ElementalBody.cs)
+const TUNED = {
+  tongues: () => ({ density: PARAMS.Fire.TongueDensity, size: PARAMS.Fire.TongueSize, vel: { y: C(PARAMS.Fire.TongueRise * 0.65, PARAMS.Fire.TongueRise * 1.3) } }),
+  embers: () => ({ density: PARAMS.Fire.EmberDensity, size: PARAMS.Fire.EmberSize }),
+  flakes: () => ({ density: PARAMS.Frost.FlakeDensity, size: PARAMS.Frost.FlakeSize, vel: { y: C(-PARAMS.Frost.FlakeFall * 1.4, -PARAMS.Frost.FlakeFall * 0.6) } }),
+  drips: () => ({ density: PARAMS.Poison.DripDensity, size: PARAMS.Poison.DripSize }),
+  sparks: () => ({ density: PARAMS.Lightning.SparkDensity, size: PARAMS.Lightning.SparkSize }),
+  wisps: () => ({ density: PARAMS.Spirit.WispDensity, size: 0.02, vel: { y: C(PARAMS.Spirit.WispRise * 0.6, PARAMS.Spirit.WispRise * 1.4) } }),
+};
+const OVERHAUL_LABEL = { tongues: "Flame tongues on the body (game fire flipbook)", embers: "Rising embers", flakes: "Falling frost flakes", drips: "Poison drips", sparks: "Surface spark flashes", wisps: "Rising spirit wisps" };
+
+// ---------- particle emitter (one Unity ParticleSystem) ----------
+class Emitter {
+  constructor(sys, S, mod, rand, center, surf) {
+    this.s = sys; this.rand = rand; this.center = center; this.surf = surf;
+    this.S = S;
+    this.sizeMul = mod ? mod.size : 1;
+    this.emitMul = mod ? mod.emit : 1;
+    // QuietElements: maxParticles = CeilToInt(max * emission); rate and bursts scale by emission.
+    this.max = mod ? Math.ceil(sys.max * mod.emit) : sys.max;
+    this.ps = []; this.acc = 0; this.t = 0; this.loopT = 0; this.firstBurst = true;
+    this.trailLen = sys.trail ? 18 : 0;
+  }
+  spawn() {
+    const s = this.s, R = this.rand, S = this.S;
+    let p = [0, 0, 0], d = [0, 1, 0];
+    const sh = s.shape;
+    if (sh && sh.type === 5) {
+      p = [R() - 0.5, R() - 0.5, R() - 0.5].map((v, i) => v * sh.scale[i]);
+      d = [0, 0, 1];
+    } else if (sh) {
+      const u = R() * 2 - 1, a = R() * Math.PI * 2, q = Math.sqrt(1 - u * u);
+      d = [q * Math.cos(a), u, q * Math.sin(a)];
+      const rr = sh.r * Math.cbrt(lerp(1 - sh.thick, 1, R()));
+      p = d.map((v, i) => v * rr * sh.scale[i]);
+    }
+    if (sh) p = p.map((v, i) => v + sh.pos[i]);
+    const ns = (s.scale[0] + s.scale[1] + s.scale[2]) / 3;
+    let wp = p.map((v, i) => (v * s.scale[i] + s.pos[i]) * S + this.center[i]);
+    if (this.surf) {
+      // overhaul: emit from the creature's own triangles, area weighted, like the mod's SkinnedMeshRenderer shape
+      const M = this.surf;
+      for (let tries = 0; tries < 8; tries++) {
+        const k = M.pickTri(R()), i0 = M.idx[k * 3] * 3, i1 = M.idx[k * 3 + 1] * 3, i2 = M.idx[k * 3 + 2] * 3;
+        let u = R(), w = R(); if (u + w > 1) { u = 1 - u; w = 1 - w; }
+        wp = [0, 1, 2].map((j) => M.pos[i0 + j] * (1 - u - w) + M.pos[i1 + j] * u + M.pos[i2 + j] * w);
+        d = norm([0, 1, 2].map((j) => M.nor[i0 + j] * (1 - u - w) + M.nor[i1 + j] * u + M.nor[i2 + j] * w));
+        if (!s.ny || (d[1] >= s.ny[0] && d[1] <= s.ny[1])) break;
+      }
+    }
+    const hier = s.scaleMode !== 2 ? S : 1;
+    const speed = mmAt(s.speed, 0, R()) * hier;
+    const r = R();
+    this.ps.push({
+      p: wp, v: d.map((x) => x * speed), age: 0,
+      life: Math.min(mmAt(s.life, 0, R()), 600),
+      size: mmAt(s.size, 0, R()) * this.sizeMul * hier * ns,
+      col: mgAt(s.color, R(), R()),
+      r, r2: R(), rot: mmAt(s.rot0, 0, R()), rotv: s.rotv ? mmAt(s.rotv, 0, R()) : 0,
+      frame0: s.uv ? mmAt(s.uv.start, 0, R()) : 0,
+      vol: s.vel ? [R(), R(), R()] : null, frc: s.force ? [R(), R(), R()] : null,
+      hist: this.trailLen ? [] : null,
+    });
+  }
+  update(dt) {
+    const s = this.s;
+    this.t += dt;
+    if (this.max > 0) {
+      // bursts at each loop start
+      this.loopT += dt;
+      if (this.firstBurst || this.loopT >= s.dur) {
+        if (!this.firstBurst) this.loopT %= s.dur;
+        this.firstBurst = false;
+        for (const [, n] of s.bursts) { const c = Math.floor(n * this.emitMul + 1e-6); /* Unity truncates fractional burst counts */ for (let i = 0; i < c && this.ps.length < this.max; i++) this.spawn(); }
+      }
+      this.acc += mmAt(s.rate, 0, 0.5) * this.emitMul * dt;
+      while (this.acc >= 1) { this.acc -= 1; if (this.ps.length < this.max) this.spawn(); }
+    }
+    const S = this.S, hier = s.scaleMode !== 2 ? S : 1;
+    const g = mmAt(s.grav, 0, 0.5) * 9.81;
+    for (const q of this.ps) {
+      q.age += dt;
+      const t = q.age / q.life;
+      q.v[1] -= g * dt;
+      if (q.frc) { q.v[0] += mmAt(s.force.x, t, q.frc[0]) * hier * dt; q.v[1] += mmAt(s.force.y, t, q.frc[1]) * hier * dt; q.v[2] += mmAt(s.force.z, t, q.frc[2]) * hier * dt; }
+      let vx = q.v[0], vy = q.v[1], vz = q.v[2];
+      if (q.vol) { vx += mmAt(s.vel.x, t, q.vol[0]) * hier; vy += mmAt(s.vel.y, t, q.vol[1]) * hier; vz += mmAt(s.vel.z, t, q.vol[2]) * hier; }
+      if (s.noise) {
+        const n = noise3(q.p[0] * s.noise.freq, q.p[1] * s.noise.freq, q.p[2] * s.noise.freq, this.t * mmAt(s.noise.scroll, 0, 0.5) * 6);
+        const st = mmAt(s.noise.str, t, q.r) * hier;
+        vx += n[0] * st; vy += n[1] * st; vz += n[2] * st;
+      }
+      q.vel = [vx, vy, vz];
+      q.p[0] += vx * dt; q.p[1] += vy * dt; q.p[2] += vz * dt;
+      q.rot += q.rotv * dt;
+      if (q.hist) {
+        q.hist.push({ p: q.p.slice(), age: q.age });
+        const tl = mmAt(s.trail.life, 0, q.r2) * q.life;
+        while (q.hist.length > 2 && q.age - q.hist[0].age > tl) q.hist.shift();
+        if (q.hist.length > this.trailLen * 3) q.hist.shift();
+      }
+    }
+    this.ps = this.ps.filter((q) => q.age < q.life);
+  }
+}
+
+function buildEffects(S, center, mod, seed, surf) {
+  const R = rng(seed);
+  const list = [];
+  for (const el of ELEMENTS) {
+    if (!state.on[el.key]) continue;
+    const fx = DATA[el.prefab];
+    for (const sys of fx.systems) {
+      if (sys.max <= 0 || !sys.rendOn) continue;
+      list.push(new Emitter(sys, S, mod, R, center, surf));
+    }
+  }
+  return list;
+}
+// mirrors comboPick/keep in overlay.glsl and ElementalBody.cs (slots: fire, frost, poison, lightning, spirit)
+const PAIRS = [["Steam", 0, 1], ["Overload", 0, 3], ["ToxicBurn", 0, 2], ["GhostFire", 0, 4], ["ConductiveIce", 1, 3], ["FrozenVeins", 1, 2], ["WraithChill", 1, 4], ["CorrosiveSparks", 3, 2], ["SoulLightning", 3, 4], ["Blight", 2, 4]];
+function comboPick() {
+  const C = PARAMS.Combos, lv = ELEM_KEYS.map((k) => (state.on[k] ? 1 : 0)), on = C.Enabled ? 1 : 0;
+  const allW = Math.min(...lv) * (C.AllEnabled ? on : 0);
+  let id = 0, w = 0;
+  if (allW <= 0.001) PAIRS.forEach(([name, a, b], k) => { const c = Math.min(lv[a], lv[b]) * (C[name + "Enabled"] ? on : 0); if (c > w + 0.001) { w = c; id = k + 1; } });
+  return { id, w, allW };
+}
+function comboKeep(cp, slot) { const inPair = cp.id > 0 && (PAIRS[cp.id - 1][1] === slot || PAIRS[cp.id - 1][2] === slot); return 1 - PARAMS.Combos.Replace * Math.max(cp.allW, inPair ? cp.w : 0); }
+function buildOverhaul(seed) {
+  const R = rng(seed), M = CREATURE_MESH[state.target], keys = Object.keys(OVERHAUL).filter((k) => state.on[k]);
+  const budget = 1 / Math.sqrt(Math.max(keys.length, 1)); // stacked elements share the particle budget
+  // ponytail: T-pose meshes overstate surface area a little; cap so Troll/Lox don't flood
+  const area = Math.min(M.area, 14);
+  const list = [];
+  const cp = comboPick();
+  for (const k of keys) for (const sys of OVERHAUL[k].systems) {
+    const T = TUNED[sys.name] ? TUNED[sys.name]() : {};
+    const G = PARAMS.Global, size = T.size != null ? T.size * G.ParticleSize : null;
+    const s = Object.assign({}, sys, { rate: C((T.density ?? sys.density) * G.ParticleDensity * area * budget * comboKeep(cp, ELEM_KEYS.indexOf(k))) },
+      size != null ? { size: C(size * 0.7, size * 1.3) } : {}, T.vel ? { vel: Object.assign({}, sys.vel, T.vel) } : {});
+    list.push(new Emitter(s, 1, null, R, [0, 0, 0], M));
+  }
+  return list;
+}
+function overhaulLight(center) {
+  const keys = Object.keys(OVERHAUL).filter((k) => state.on[k]);
+  if (!keys.length) return [];
+  let w = 0; const col = [0, 0, 0]; let int = 0, flash = false;
+  for (const k of keys) { const l = OVERHAUL[k].light; col.forEach((_, i) => col[i] += l.col[i] * l.int); w += l.int; int = Math.max(int, l.int); flash = flash || !!l.flash; }
+  const c = CREATURES[state.target];
+  let lc = col.map((x) => toLin(x / w));
+  const cp = comboPick();   // a combo tints the light toward its own colour (combo colours are already linear)
+  if (cp.allW > 0) lc = lc.map((x, i) => lerp(x, PARAMS.Combos.AllColor[i], cp.allW));
+  else if (cp.id > 0) lc = lc.map((x, i) => lerp(x, PARAMS.Combos[PAIRS[cp.id - 1][0] + "Color"][i], cp.w));
+  return [{ pos: [0, c.h * 0.6, 0], col: lc, int: int * state.mod.light * 2, range: Math.max(4, c.h * 2.2), seed: 1.7, flash }];
+}
+function lightsFor(S, center, mod) {
+  const out = [];
+  for (const el of ELEMENTS) {
+    if (!state.on[el.key]) continue;
+    for (const l of DATA[el.prefab].lights) {
+      out.push({ pos: l.pos.map((v, i) => v * S + center[i]), col: l.color.slice(0, 3).map(toLin), int: l.int * (mod ? mod.light : 1), range: l.range * S, seed: out.length * 7.3 });
+    }
+  }
+  return out;
+}
+
+// same hash as the shader, so the light flashes with the arcs
+function h3(x, y, z) { x = x * 0.3183099 + 0.1; y = y * 0.3183099 + 0.1; z = z * 0.3183099 + 0.1; x = (x - Math.floor(x)) * 17; y = (y - Math.floor(y)) * 17; z = (z - Math.floor(z)) * 17; const v = x * y * z * (x + y + z); return v - Math.floor(v); }
+function shaderBurst(t) { const L = PARAMS.Lightning; return (h3(Math.floor(t * L.BurstRate), 1.3, 2.1) >= 1 - L.BurstChance ? 1 : 0) * (h3(Math.floor(t * L.FlickerRate), 0.37, 0.71) >= 0.25 ? 1 : 0); }
+
+// ---------- WebGL2 renderer ----------
+const VS_FULL = `#version 300 es
+in vec2 aPos; out vec2 vNdc; void main(){ vNdc = aPos; gl_Position = vec4(aPos,0.,1.); }`;
+const COMMON = `
+uniform vec3 camPos, camR, camU, camF; uniform float tanH, aspect;
+uniform vec3 capA, capB; uniform float capR;
+vec3 rayDir(vec2 ndc){ return normalize(camF + ndc.x*tanH*aspect*camR + ndc.y*tanH*camU); }
+float capIntersect(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float r){
+  vec3 ba=pb-pa, oa=ro-pa; float baba=dot(ba,ba), bard=dot(ba,rd), baoa=dot(ba,oa), rdoa=dot(rd,oa), oaoa=dot(oa,oa);
+  float a=baba-bard*bard, b=baba*rdoa-baoa*bard, c=baba*oaoa-baoa*baoa-r*r*baba, h=b*b-a*c;
+  if(h>=0.){ float t=(-b-sqrt(h))/a; float y=baoa+t*bard; if(y>0. && y<baba) return t;
+    vec3 oc=(y<=0.)?oa:ro-pb; b=dot(rd,oc); c=dot(oc,oc)-r*r; h=b*b-c; if(h>0.) return -b-sqrt(h); }
+  return -1.; }
+float groundT(vec3 ro, vec3 rd){ return rd.y < -1e-4 ? -ro.y/rd.y : -1.; }
+`;
+const OVERLAY = OVERLAY_GLSL;
+const FS_SCENE = `#version 300 es
+precision highp float; in vec2 vNdc; out vec4 o;
+${COMMON}
+uniform vec3 Lpos[6]; uniform vec3 Lcol[6]; uniform float Lrange[6]; uniform int Ln;
+uniform vec3 ambient, sunDir, sunCol, skyTop, skyHor, fogCol; uniform float fogD;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
+vec3 shade(vec3 p, vec3 n, vec3 alb){
+  vec3 c = alb*(ambient + sunCol*max(dot(n,sunDir),0.));
+  for(int i=0;i<6;i++){ if(i>=Ln) break;
+    vec3 l = Lpos[i]-p; float d2 = dot(l,l); float rr = d2/(Lrange[i]*Lrange[i]);
+    float att = clamp(1.-rr*rr,0.,1.); att = att*att/(1.+25.*rr);
+    c += alb*Lcol[i]*att*max(dot(n,normalize(l)),0.); }
+  return c; }
+void main(){
+  vec3 rd = rayDir(vNdc), ro = camPos;
+  vec3 sky = mix(skyHor, skyTop, pow(clamp(rd.y,0.,1.),.6));
+  vec3 col = sky; float t = 1e9;
+  float tc = -1.;
+  float tg = groundT(ro, rd);
+  if(tc > 0.){ t = tc; vec3 p = ro+rd*t; vec3 ba=capB-capA, pa=p-capA; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);
+    vec3 n = (pa-h*ba)/capR; float rim = pow(1.-max(dot(n,-rd),0.),3.);
+    col = shade(p, n, vec3(.19,.16,.13)) + rim*.04*sky;
+  }
+  else if(tg > 0.){ t = tg; vec3 p = ro+rd*t;
+    float m = vnoise(p.xz*1.3)*.6 + vnoise(p.xz*5.)*.4;
+    vec3 alb = mix(vec3(.05,.06,.035), vec3(.11,.12,.06), m);
+    float r2 = dot(p.xz,p.xz); alb *= mix(.55, 1., smoothstep(0., capR*capR*4., r2)); // contact shadow
+    col = shade(p, vec3(0,1,0), alb); }
+  if(t < 1e8) col = mix(col, fogCol, 1.-exp(-t*fogD));
+  o = vec4(col, 1.); }`;
+const VS_MESH = `#version 300 es
+in vec3 aP; in vec3 aN; in vec2 aT; out vec3 vP; out vec3 vN; out vec2 vT;
+uniform vec3 camPos, camR, camU, camF; uniform float tanH, aspect, projA, projB;
+void main(){ vP = aP; vN = aN; vT = aT; vec3 d = aP - camPos; float z = dot(d, camF);
+  gl_Position = vec4(dot(d, camR)/(tanH*aspect), dot(d, camU)/tanH, projA*z + projB, z); }`;
+const FS_MESH = `#version 300 es
+precision highp float; in vec3 vP; in vec3 vN; in vec2 vT; out vec4 o;
+uniform sampler2D tex; uniform vec3 camPos;
+uniform vec3 Lpos[6]; uniform vec3 Lcol[6]; uniform float Lrange[6]; uniform int Ln;
+uniform vec3 ambient, sunDir, sunCol, fogCol; uniform float fogD; uniform float _ElemScale;
+${OVERLAY}
+void main(){
+  vec3 v = normalize(camPos - vP); vec3 n = normalize(vN); if(dot(n, v) < 0.) n = -n;
+  vec4 tx = texture(tex, vT);
+  if (_ElemCutoff >= 0. && tx.a < _ElemCutoff) discard; // alpha-cutout fur and hair, like the game material
+  vec3 alb = tx.rgb;
+  vec3 c = alb*(ambient + sunCol*max(dot(n,sunDir),0.));
+  for(int i=0;i<6;i++){ if(i>=Ln) break;
+    vec3 l = Lpos[i]-vP; float d2 = dot(l,l); float rr = d2/(Lrange[i]*Lrange[i]);
+    float att = clamp(1.-rr*rr,0.,1.); att = att*att/(1.+25.*rr);
+    c += alb*Lcol[i]*att*max(dot(n,normalize(l)),0.); }
+  // pattern size follows creature size (elemScale = 1 for a Greydwarf), so big creatures aren't busy
+  vec3 nf = normalize(cross(dFdy(vP), dFdx(vP))); if (dot(nf, v) < 0.) nf = -nf;   // flat normal for faceted ice
+  vec3 sp = vP*_ElemScale;
+  vec3 oMul, oAdd; overlay(sp, n, nf, v, length(fwidth(sp)), alb, oMul, oAdd); c = c*oMul + oAdd;
+  c = mix(c, fogCol, 1.-exp(-length(camPos - vP)*fogD));
+  o = vec4(c, 1.); }`;
+const VS_SHELL = `#version 300 es
+in vec3 aP; in vec3 aN; in vec2 aT; out vec3 vP; out vec3 vN; out vec2 vT; out vec3 vW;
+uniform vec3 camPos, camR, camU, camF; uniform float tanH, aspect, projA, projB, _ShellH, _GlobalShellHeight, _ElemScale;
+void main(){ vP = aP; vN = aN; vT = aT;
+  vec3 w = aP + normalize(aN) * (.004 + _ShellH * _GlobalShellHeight / max(_ElemScale, .05)); vW = w;
+  vec3 d = w - camPos; float z = dot(d, camF);
+  gl_Position = vec4(dot(d, camR)/(tanH*aspect), dot(d, camU)/tanH, projA*z + projB, z); }`;
+const FS_SHELL = `#version 300 es
+precision highp float; in vec3 vP; in vec3 vN; in vec2 vT; in vec3 vW; out vec4 o;
+uniform sampler2D tex; uniform vec3 camPos; uniform float _ShellH, _ElemScale;
+${OVERLAY}
+void main(){
+  if (_ElemCutoff >= 0. && texture(tex, vT).a < _ElemCutoff) discard;
+  vec3 v = normalize(camPos - vW); vec3 n = normalize(vN); if(dot(n, v) < 0.) n = -n;
+  vec3 sp = vP*_ElemScale; vec3 col; float al;
+  vec3 nf = normalize(cross(dFdy(vW), dFdx(vW))); if (dot(nf, v) < 0.) nf = -nf;
+  shell(sp, n, nf, v, length(fwidth(sp)), _ShellH, col, al);
+  o = vec4(col, al); }`;
+const VS_PART = `#version 300 es
+in vec2 aPos; in vec2 aUV; in vec4 aCol; in float aZ; uniform float projA, projB;
+out vec2 vUV; out vec4 vCol; out float vZ; out vec2 vNdc;
+void main(){ vUV=aUV; vCol=aCol; vZ=aZ; vNdc=aPos; gl_Position=vec4(aPos*aZ, projA*aZ+projB, aZ); }`;
+const FS_PART = `#version 300 es
+precision highp float; in vec2 vUV; in vec4 vCol; in float vZ; in vec2 vNdc; out vec4 o;
+${COMMON}
+uniform sampler2D tex; uniform vec4 tint; uniform vec3 emis; uniform float lit, gray, emisV;
+void main(){
+  vec3 rd = rayDir(vNdc); float fz = dot(rd, camF);
+  float tg = groundT(camPos, rd);
+  if(tg > 0. && tg*fz < vZ) discard;
+  vec4 t = texture(tex, vUV);
+  if(gray > .5){ t.a *= clamp(dot(t.rgb, vec3(.333))*2.2, 0., 1.); t.rgb = vec3(1.); } // gradient-mapped fireball: fill the body, not just the bright rim
+  vec3 c = t.rgb*vCol.rgb*tint.rgb*lit + emis*mix(vec3(1.), vCol.rgb, emisV);
+  o = vec4(c, clamp(t.a*vCol.a*tint.a, 0., 1.)); }`;
+const FS_BRIGHT = `#version 300 es
+precision highp float; in vec2 vNdc; out vec4 o; uniform sampler2D src;
+void main(){ vec3 c = texture(src, vNdc*.5+.5).rgb; float l = max(c.r,max(c.g,c.b)); o = vec4(c*max(l-.9,0.)/max(l,1e-4), 1.); }`;
+const FS_BLUR = `#version 300 es
+precision highp float; in vec2 vNdc; out vec4 o; uniform sampler2D src; uniform vec2 dir;
+void main(){ vec2 uv = vNdc*.5+.5; vec3 c = texture(src,uv).rgb*.227;
+  c += (texture(src,uv+dir*1.385).rgb + texture(src,uv-dir*1.385).rgb)*.316;
+  c += (texture(src,uv+dir*3.231).rgb + texture(src,uv-dir*3.231).rgb)*.070; o = vec4(c,1.); }`;
+const FS_POST = `#version 300 es
+precision highp float; in vec2 vNdc; out vec4 o; uniform sampler2D src, bloom; uniform float exposure;
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv = vNdc*.5+.5; vec3 c = texture(src,uv).rgb + texture(bloom,uv).rgb*.6;
+  c = aces(c*exposure); o = vec4(pow(c, vec3(1./2.2)), 1.); }`;
+
+class View {
+  constructor(canvas, isMod) {
+    this.cv = canvas; this.isMod = isMod;
+    const gl = canvas.getContext("webgl2", { antialias: false, premultipliedAlpha: false });
+    if (!gl) throw new Error("WebGL2 unavailable");
+    this.gl = gl;
+    this.hdr = !!gl.getExtension("EXT_color_buffer_float");
+    this.pScene = this.prog(VS_FULL, FS_SCENE); this.pPart = this.prog(VS_PART, FS_PART);
+    this.pMesh = this.prog(VS_MESH, FS_MESH); this.pShell = this.prog(VS_SHELL, FS_SHELL); this.meshes = {};
+    this.pBright = this.prog(VS_FULL, FS_BRIGHT); this.pBlur = this.prog(VS_FULL, FS_BLUR); this.pPost = this.prog(VS_FULL, FS_POST);
+    this.quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+    this.vbo = gl.createBuffer(); this.verts = new Float32Array(9 * 6 * 4000);
+    this.tex = {};
+    for (const [name, uri] of Object.entries(TEX)) this.loadTex(name, uri);
+    this.white = this.solidTex();
+    this.fb = null; this.w = 0; this.h = 0;
+  }
+  prog(vs, fs) {
+    const gl = this.gl, p = gl.createProgram();
+    for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    }
+    for (const [k, nm] of [[0, "aP"], [1, "aN"], [2, "aT"]]) gl.bindAttribLocation(p, k, nm); // mesh and shell programs share one VAO
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    p.u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); p.u[info.name.replace("[0]", "")] = gl.getUniformLocation(p, info.name); }
+    p.a = {}; const na = gl.getProgramParameter(p, gl.ACTIVE_ATTRIBUTES);
+    for (let i = 0; i < na; i++) { const info = gl.getActiveAttrib(p, i); p.a[info.name] = gl.getAttribLocation(p, info.name); }
+    return p;
+  }
+  solidTex() {
+    const gl = this.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255])); return t;
+  }
+  loadTex(name, uri) {
+    const gl = this.gl, img = new Image();
+    img.onload = () => {
+      const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, LINEAR_TEX[name] ? gl.RGBA8 : gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      this.tex[name] = t;
+    };
+    img.src = uri;
+  }
+  target(w, h, depth) {
+    const gl = this.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, this.hdr ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, this.hdr ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    if (depth) {
+      const rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+    }
+    return { t, fb, w, h };
+  }
+  resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const w = Math.max(2, Math.round(this.cv.clientWidth * dpr)), h = Math.max(2, Math.round(this.cv.clientHeight * dpr));
+    if (w === this.w && h === this.h) return;
+    this.w = this.cv.width = w; this.h = this.cv.height = h;
+    const hw = Math.max(1, w >> 2), hh = Math.max(1, h >> 2);
+    this.main = this.target(w, h, true); this.b1 = this.target(hw, hh); this.b2 = this.target(hw, hh);
+  }
+  mesh(name) {
+    if (this.meshes[name]) return this.meshes[name];
+    const gl = this.gl, M = CREATURE_MESH[name], p = this.pMesh, vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    for (const [attr, arr, n] of [["aP", M.pos, 3], ["aN", M.nor, 3], ["aT", M.uv, 2]]) {
+      const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(p.a[attr]); gl.vertexAttribPointer(p.a[attr], n, gl.FLOAT, false, 0, 0);
+    }
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, M.idx, gl.STATIC_DRAW);
+    gl.bindVertexArray(null);
+    this.loadTex("mesh:" + name, M.tex);
+    return (this.meshes[name] = { vao, count: M.idx.length });
+  }
+  full(p) { const gl = this.gl; gl.bindBuffer(gl.ARRAY_BUFFER, this.quad); gl.enableVertexAttribArray(p.a.aPos); gl.vertexAttribPointer(p.a.aPos, 2, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLES, 0, 6); }
+  camUniforms(p, cam, cap) {
+    const gl = this.gl, u = p.u;
+    gl.uniform3fv(u.camPos, cam.pos); gl.uniform3fv(u.camR, cam.r); gl.uniform3fv(u.camU, cam.u); gl.uniform3fv(u.camF, cam.f);
+    gl.uniform1f(u.tanH, cam.tanH); gl.uniform1f(u.aspect, cam.aspect);
+    gl.uniform3fv(u.capA, cap.a); gl.uniform3fv(u.capB, cap.b); gl.uniform1f(u.capR, cap.r);
+  }
+  render(scene, emitters, lights, time) {
+    const gl = this.gl; this.resize();
+    const cam = scene.cam(this.w / this.h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.main.fb); gl.viewport(0, 0, this.w, this.h);
+    gl.disable(gl.BLEND);
+    const ps = this.pScene; gl.useProgram(ps); this.camUniforms(ps, cam, scene.cap);
+    const L = scene.light;
+    gl.uniform3fv(ps.u.ambient, L.ambient); gl.uniform3fv(ps.u.sunDir, L.sunDir); gl.uniform3fv(ps.u.sunCol, L.sunCol);
+    gl.uniform3fv(ps.u.skyTop, L.skyTop); gl.uniform3fv(ps.u.skyHor, L.skyHor); gl.uniform3fv(ps.u.fogCol, L.fogCol); gl.uniform1f(ps.u.fogD, L.fogD);
+    const lp = [], lc = [], lr = [];
+    let lsum = 0;
+    lights.slice(0, 6).forEach((l, i) => {
+      let flick = 0.82 + 0.18 * (Math.sin(time * 9.1 + l.seed) * 0.5 + Math.sin(time * 23.7 + l.seed * 2) * 0.5);
+      if (l.flash) flick *= Math.max(0, 1 + PARAMS.Lightning.LightFlash * (1.6 * shaderBurst(time) - 0.4));
+      lp.push(...l.pos); lc.push(...l.col.map((c) => c * l.int * flick)); lr.push(l.range); lsum += l.int;
+    });
+    while (lp.length < 18) { lp.push(0, 0, 0); lc.push(0, 0, 0); lr.push(1); }
+    const ov = scene.overlay && this.isMod ? scene.overlay : [0, 0, 0, 0, 0];
+    gl.uniform3fv(ps.u.Lpos, lp); gl.uniform3fv(ps.u.Lcol, lc); gl.uniform1fv(ps.u.Lrange, lr); gl.uniform1i(ps.u.Ln, Math.min(lights.length, 6));
+    this.full(ps);
+    // creature mesh
+    gl.clear(gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
+    const pm = this.pMesh, me = this.mesh(scene.mesh); gl.useProgram(pm); this.camUniforms(pm, cam, scene.cap);
+    gl.uniform1f(pm.u.projA, cam.projA); gl.uniform1f(pm.u.projB, cam.projB);
+    gl.uniform3fv(pm.u.ambient, L.ambient); gl.uniform3fv(pm.u.sunDir, L.sunDir); gl.uniform3fv(pm.u.sunCol, L.sunCol); gl.uniform3fv(pm.u.fogCol, L.fogCol); gl.uniform1f(pm.u.fogD, L.fogD);
+    gl.uniform3fv(pm.u.Lpos, lp); gl.uniform3fv(pm.u.Lcol, lc); gl.uniform1fv(pm.u.Lrange, lr); gl.uniform1i(pm.u.Ln, Math.min(lights.length, 6));
+    const engine = (pr) => {
+      gl.uniform4fv(pr.u._ElemA, ov.slice(0, 4)); gl.uniform1f(pr.u._ElemB, ov[4]); gl.uniform1f(pr.u.uTime, time);
+      gl.uniform4fv(pr.u._ElemAge, ELEM_KEYS.slice(0, 4).map((k) => elemAge(k))); gl.uniform1f(pr.u._ElemLight, L.litLevel);
+      gl.uniform1f(pr.u._ElemCutoff, CREATURE_MESH[scene.mesh].cut); gl.uniform3fv(pr.u._ElemSunDir, L.sunDir);
+      gl.uniform1f(pr.u._ElemScale, 1 / Math.sqrt(CREATURES[scene.mesh].h / 1.8)); setParams(gl, pr);
+    };
+    engine(pm);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex["mesh:" + scene.mesh] || this.white); gl.uniform1i(pm.u.tex, 0);
+    gl.bindVertexArray(me.vao); gl.drawElements(gl.TRIANGLES, me.count, gl.UNSIGNED_SHORT, 0);
+    // layers floating above the skin (premultiplied), same mesh pushed out along its normals
+    const shells = this.isMod && scene.overlay ? Math.round(PARAMS.Global.ShellCount) : 0;
+    if (shells > 0) {
+      const sh = this.pShell; gl.useProgram(sh); this.camUniforms(sh, cam, scene.cap);
+      gl.uniform1f(sh.u.projA, cam.projA); gl.uniform1f(sh.u.projB, cam.projB); engine(sh);
+      gl.uniform1i(sh.u.tex, 0); gl.depthMask(false); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      for (let k = 1; k <= shells; k++) { gl.uniform1f(sh.u._ShellH, k / shells); gl.drawElements(gl.TRIANGLES, me.count, gl.UNSIGNED_SHORT, 0); }
+      gl.disable(gl.BLEND);
+    }
+    gl.bindVertexArray(null);
+    // particles
+    gl.depthMask(false);
+    const pp = this.pPart; gl.useProgram(pp); this.camUniforms(pp, cam, scene.cap);
+    gl.uniform1f(pp.u.projA, cam.projA); gl.uniform1f(pp.u.projB, cam.projB);
+    gl.enable(gl.BLEND);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+    const st = 36;
+    gl.enableVertexAttribArray(pp.a.aPos); gl.vertexAttribPointer(pp.a.aPos, 2, gl.FLOAT, false, st, 0);
+    gl.enableVertexAttribArray(pp.a.aUV); gl.vertexAttribPointer(pp.a.aUV, 2, gl.FLOAT, false, st, 8);
+    gl.enableVertexAttribArray(pp.a.aCol); gl.vertexAttribPointer(pp.a.aCol, 4, gl.FLOAT, false, st, 16);
+    gl.enableVertexAttribArray(pp.a.aZ); gl.vertexAttribPointer(pp.a.aZ, 1, gl.FLOAT, false, st, 32);
+    const litLevel = L.litLevel + lsum * 0.08;
+    let count = 0; this.fill = 0;
+    for (const em of emitters) {
+      const s = em.s;
+      const n = this.buildQuads(em, cam);
+      count += em.ps.length;
+      if (!n) continue;
+      gl.bufferData(gl.ARRAY_BUFFER, this.verts.subarray(0, n * 9), gl.STREAM_DRAW);
+      const isTrail = s.render === 5 && s.trail;
+      const texName = isTrail ? (s.trail.tex || s.tex) : s.tex;
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex[texName] || this.white); gl.uniform1i(pp.u.tex, 0);
+      gl.uniform4fv(pp.u.tint, s.tint); gl.uniform3fv(pp.u.emis, s.emis);
+      gl.uniform1f(pp.u.lit, s.lit < 1 ? litLevel : 1); gl.uniform1f(pp.u.gray, s.gray ? 1 : 0); gl.uniform1f(pp.u.emisV, s.emisV ? 1 : 0);
+      if (s.blend === "add") gl.blendFunc(gl.SRC_ALPHA, gl.ONE); else gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.TRIANGLES, 0, n);
+    }
+    gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.depthMask(true);
+    // bloom + tonemap
+    gl.viewport(0, 0, this.b1.w, this.b1.h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.b1.fb); gl.useProgram(this.pBright); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.main.t); gl.uniform1i(this.pBright.u.src, 0); this.full(this.pBright);
+    const pb = this.pBlur; gl.useProgram(pb); gl.uniform1i(pb.u.src, 0);
+    for (let i = 0; i < 2; i++) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.b2.fb); gl.bindTexture(gl.TEXTURE_2D, this.b1.t); gl.uniform2f(pb.u.dir, (i + 1) / this.b1.w, 0); this.full(pb);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.b1.fb); gl.bindTexture(gl.TEXTURE_2D, this.b2.t); gl.uniform2f(pb.u.dir, 0, (i + 1) / this.b1.h); this.full(pb);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, this.w, this.h);
+    const po = this.pPost; gl.useProgram(po);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.main.t); gl.uniform1i(po.u.src, 0);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.b1.t); gl.uniform1i(po.u.bloom, 1);
+    gl.uniform1f(po.u.exposure, L.exposure);
+    this.full(po);
+    return { count, lsum, fill: this.fill };
+  }
+  buildQuads(em, cam) {
+    const s = em.s, V = this.verts, cap = V.length / 9 - 6;
+    let n = 0;
+    const proj = (p) => {
+      const dx = p[0] - cam.pos[0], dy = p[1] - cam.pos[1], dz = p[2] - cam.pos[2];
+      const z = dx * cam.f[0] + dy * cam.f[1] + dz * cam.f[2];
+      const x = dx * cam.r[0] + dy * cam.r[1] + dz * cam.r[2];
+      const y = dx * cam.u[0] + dy * cam.u[1] + dz * cam.u[2];
+      return [x / (z * cam.tanH * cam.aspect), y / (z * cam.tanH), z];
+    };
+    const self = this;
+    const push = (x, y, u, v, c, z) => { const o = n * 9; V[o] = x; V[o + 1] = y; V[o + 2] = u; V[o + 3] = v; V[o + 4] = c[0]; V[o + 5] = c[1]; V[o + 6] = c[2]; V[o + 7] = c[3]; V[o + 8] = z; n++; };
+    const quad = (cx, cy, ax, ay, bx, by, uv, c, z) => {
+      // corners: c - a - b, c + a - b, c - a + b, c + a + b
+      const [u0, v0, u1, v1] = uv;
+      self.fill += Math.abs(ax * by - ay * bx); // quad area in NDC / 4 = fraction of the screen
+      const p00 = [cx - ax - bx, cy - ay - by], p10 = [cx + ax - bx, cy + ay - by], p01 = [cx - ax + bx, cy - ay + by], p11 = [cx + ax + bx, cy + ay + by];
+      push(p00[0], p00[1], u0, v0, c, z); push(p10[0], p10[1], u1, v0, c, z); push(p01[0], p01[1], u0, v1, c, z);
+      push(p01[0], p01[1], u0, v1, c, z); push(p10[0], p10[1], u1, v0, c, z); push(p11[0], p11[1], u1, v1, c, z);
+    };
+    let list = em.ps;
+    if (s.blend === "alpha") list = list.map((q) => [q, proj(q.p)[2]]).sort((a, b) => b[1] - a[1]).map((x) => x[0]);
+    for (const q of list) {
+      if (n >= cap) break;
+      const t = q.age / q.life;
+      let c = q.col.slice();
+      if (s.col) { const k = mgAt(s.col, t, q.r); c = [c[0] * k[0], c[1] * k[1], c[2] * k[2], c[3] * k[3]]; }
+      c = [toLin(c[0]), toLin(c[1]), toLin(c[2]), c[3]];
+      let size = q.size * (s.sol ? mmAt(s.sol, t, q.r) : 1);
+      const P = proj(q.p);
+      if (P[2] < 0.05) continue;
+      if (s.render === 5 && s.trail && q.hist && q.hist.length > 1) {
+        const H = q.hist.map((h) => proj(h.p)), m = H.length;
+        for (let i = 0; i < m - 1 && n < cap; i++) {
+          const a = H[i], b = H[i + 1]; if (a[2] < 0.05 || b[2] < 0.05) continue;
+          const f = i / (m - 1);
+          const w = mmAt(s.trail.width, 1 - f, q.r) * size * 0.5 / (a[2] * cam.tanH);
+          let dx = (b[0] - a[0]) * cam.aspect, dy = b[1] - a[1]; const L = Math.hypot(dx, dy) || 1e-6; dx /= L; dy /= L;
+          const tc = mgAt(s.trail.col, 1 - f, q.r);
+          const cc = [c[0] * toLin(tc[0]), c[1] * toLin(tc[1]), c[2] * toLin(tc[2]), c[3] * tc[3] * f];
+          const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+          quad(mx, my, (b[0] - a[0]) / 2, (b[1] - a[1]) / 2, -dy * w / cam.aspect, dx * w, [0, 0, 1, 1], cc, (a[2] + b[2]) / 2);
+        }
+        continue;
+      }
+      if (s.render === 5) continue;
+      let hy = Math.min(size * 0.5 / (P[2] * cam.tanH), s.maxScreen);
+      let uv = [0, 0, 1, 1];
+      if (s.uv) {
+        const tiles = s.uv.tx * s.uv.ty;
+        const fr = Math.floor(((q.frame0 + mmAt(s.uv.fot, t, q.r) * s.uv.cycles) % 1) * tiles) % tiles;
+        const fx = fr % s.uv.tx, fy = s.uv.ty - 1 - Math.floor(fr / s.uv.tx);
+        uv = [fx / s.uv.tx, fy / s.uv.ty, (fx + 1) / s.uv.tx, (fy + 1) / s.uv.ty];
+      }
+      if (s.render === 1 && q.vel) {
+        // stretched billboard: long axis follows screen-space velocity
+        const P2 = proj([q.p[0] + q.vel[0] * 0.05, q.p[1] + q.vel[1] * 0.05, q.p[2] + q.vel[2] * 0.05]);
+        let dx = (P2[0] - P[0]) * cam.aspect, dy = P2[1] - P[1]; const L = Math.hypot(dx, dy) || 1e-6; dx /= L; dy /= L;
+        const speed = Math.hypot(...q.vel);
+        const len = hy * s.lenScale + (speed * s.velScale) * 0.5 / (P[2] * cam.tanH);
+        quad(P[0], P[1], -dy * hy / cam.aspect, dx * hy, dx * len / cam.aspect, dy * len, uv, c, P[2]);
+      } else {
+        const cs = Math.cos(q.rot), sn = Math.sin(q.rot);
+        quad(P[0], P[1], cs * hy / cam.aspect, sn * hy, -sn * hy / cam.aspect, cs * hy, uv, c, P[2]);
+      }
+    }
+    return n;
+  }
+}
+
+// ---------- scene ----------
+const LIGHTING = {
+  night: { ambient: [0.05, 0.06, 0.09], sunDir: norm([-0.4, 0.6, -0.3]), sunCol: [0.10, 0.12, 0.18], skyTop: [0.010, 0.014, 0.03], skyHor: [0.04, 0.05, 0.07], fogCol: [0.03, 0.04, 0.055], fogD: 0.035, exposure: 1.1, litLevel: 0.25 },
+  day: { ambient: [0.35, 0.38, 0.42], sunDir: norm([-0.5, 0.75, -0.35]), sunCol: [1.5, 1.35, 1.1], skyTop: [0.35, 0.5, 0.75], skyHor: [0.7, 0.75, 0.78], fogCol: [0.55, 0.6, 0.65], fogD: 0.02, exposure: 1.0, litLevel: 1.0 },
+};
+function norm(v) { const l = Math.hypot(...v); return v.map((x) => x / l); }
+function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function makeScene() {
+  const c = CREATURES[state.target];
+  const center = [0, c.h / 2, 0];
+  const S = c.r * 2;
+  const cap = { a: [0, c.r, 0], b: [0, Math.max(c.r, c.h - c.r), 0], r: c.r * 0.7 }; // meshes sit inside the hitbox, so draw the body slimmer
+  const D = state.dist;
+  const camPos = [Math.sin(state.yaw) * D, center[1] + 0.35 + D * 0.12, -Math.cos(state.yaw) * D];
+  const f = norm(center.map((v, i) => v - camPos[i]));
+  const r = norm(cross([0, 1, 0], f)), u = cross(f, r);
+  const overlay = state.mode === "overhaul" ? ["fire", "frost", "poison", "lightning", "spirit"].map((k) => (state.on[k] ? 1 : 0)) : null;
+  return { center, S, cap, overlay, light: LIGHTING[state.tod], mesh: state.target, cam: (aspect) => ({ pos: camPos, f, r, u, tanH: Math.tan((65 / 2) * Math.PI / 180), aspect, projA: (200 + 0.05) / (200 - 0.05), projB: (-2 * 200 * 0.05) / (200 - 0.05) }) };
+}
+
+// ---------- app ----------
+let views = [], sims = [], scene, time = state.t0 || 0;
+function rebuild(which = "both") {
+  scene = makeScene();
+  const mk = (mod) => {
+    const over = mod && state.mode === "overhaul";
+    const em = over ? buildOverhaul(1234) : buildEffects(scene.S, scene.center, mod, 1234, null);
+    for (let i = 0; i < 90; i++) em.forEach((e) => e.update(1 / 30)); // prewarm 3 s
+    return { em, lights: over ? overhaulLight(scene.center) : lightsFor(scene.S, scene.center, mod) };
+  };
+  if (which === "both" || which === "a") sims[0] = mk(null);
+  if (which === "both" || which === "b") sims[1] = mk(state.mod);
+  renderLedger();
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 1 / 20); last = now;
+  if (state.playing) { time += dt; sims.forEach((s) => s.em.forEach((e) => e.update(dt))); }
+  views.forEach((v, i) => {
+    const r = v.render(scene, sims[i].em, sims[i].lights, time);
+    document.getElementById(i ? "cntB" : "cntA").textContent = r.count;
+    document.getElementById(i ? "fillB" : "fillA").textContent = (r.fill * 100).toFixed(0) + "%";
+    document.getElementById(i ? "lgtB" : "lgtA").textContent = sims[i].lights.length ? `glow lights: ${sims[i].lights.map((l) => l.int.toFixed(1)).join(" + ")} intensity` : "no glow lights";
+  });
+  requestAnimationFrame(frame);
+}
+
+function renderLedger() {
+  const m = state.mod, T = document.getElementById("ledger");
+  const f = (x, d = 2) => (Math.round(x * 10 ** d) / 10 ** d).toString();
+  const range = (c, mul = 1) => { if (c.k === "c") { const a = c.v[0] * mul, b = c.v[1] * mul; return Math.abs(a - b) < 1e-6 ? f(a) : `${f(Math.min(a, b))}–${f(Math.max(a, b))}`; } return `≤${f(mmMax(c) * mul)}`; };
+  let h = `<thead><tr><th style="width:44px"></th><th>System</th><th>What it is</th><th class="num">Particles/s</th><th class="num">Cap</th><th class="num">Size (m)</th><th class="num">Lifetime (s)</th><th>Blend</th></tr></thead><tbody>`;
+  for (const el of ELEMENTS) {
+    const fx = DATA[el.prefab];
+    h += `<tr class="el"><td colspan="8"><span class="dot" style="background:${el.color}"></span>${el.label}<span>${el.prefab}</span></td></tr>`;
+    for (const s of fx.systems) {
+      if (s.max <= 0 || !s.rendOn) continue;
+      const rate = mmAt(s.rate, 0, 0.5);
+      const tex = s.render === 5 && s.trail ? s.trail.tex : s.tex;
+      h += `<tr><td>${tex && TEX[tex] ? `<img class="thumb" alt="${tex} texture" src="${TEX[tex]}">` : ""}</td><td class="sys">${s.name}</td><td class="what">${WHAT[s.name] || ""}</td>`;
+      h += `<td class="num">${f(rate, 1)} <span class="q">→ ${f(rate * m.emit, 1)}</span></td>`;
+      h += `<td class="num">${s.max} <span class="q">→ ${Math.ceil(s.max * m.emit)}</span></td>`;
+      h += `<td class="num">${range(s.size)} <span class="q">→ ${range(s.size, m.size)}</span></td>`;
+      h += `<td class="num">${s.life.k === "c" && !isFinite(s.life.v[1]) ? "until removed" : range(s.life)}</td><td>${s.blend === "add" ? "Additive" : "Alpha"}</td></tr>`;
+    }
+    for (const l of fx.lights) {
+      h += `<tr><td><span class="dot" style="background:rgb(${l.color.slice(0, 3).map((c) => Math.round(c * 255)).join(",")});width:18px;height:18px;margin:8px"></span></td><td class="sys">Point light</td><td class="what">Glow cast on the ground and nearby objects, ${f(l.range, 0)} m range</td><td class="num" colspan="3">intensity ${f(l.int, 1)} <span class="q">→ ${f(l.int * m.light, 2)}</span></td><td class="num">while active</td><td>Light</td></tr>`;
+    }
+  }
+  T.innerHTML = h + "</tbody>";
+}
+
+function syncMode() {
+  const over = state.mode === "overhaul";
+  document.querySelectorAll("#mode button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.v === state.mode));
+  document.getElementById("tagB").textContent = over ? "Overhaul" : "QuietElements (shrink only)";
+  for (const id of ["mSize", "mEmit"]) document.getElementById(id).closest(".slider").hidden = over;
+}
+let tuneTab = "Fire", rebuildTimer = 0;
+function saveParams() { try { localStorage.setItem("qe-params-v3", JSON.stringify(PARAMS)); } catch (e) {} }
+function fmt(v) { return (Math.round(v * 1000) / 1000).toString(); }
+function renderTune() {
+  const tabs = document.getElementById("tuneTabs"), grid = document.getElementById("tuneGrid");
+  tabs.innerHTML = "";
+  for (const sec of PARAM_SCHEMA) {
+    const b = document.createElement("button");
+    b.type = "button"; b.role = "tab"; b.textContent = sec.name; b.setAttribute("aria-selected", sec.name === tuneTab);
+    b.onclick = () => { tuneTab = sec.name; renderTune(); };
+    tabs.append(b);
+  }
+  grid.innerHTML = "";
+  const sec = PARAM_SCHEMA.find((x) => x.name === tuneTab);
+  for (const [n, t, d, lo, hi, desc] of sec.params) {
+    const id = `k-${sec.name}-${n}`, row = document.createElement("div");
+    row.className = "knob" + (t === "p" ? " part" : "");
+    const v = PARAMS[sec.name][n];
+    if (t === "b") {
+      row.className += " toggle";
+      row.innerHTML = `<label for="${id}"><span class="tgl"><input type="checkbox" id="${id}" ${v ? "checked" : ""}> ${n}</span> <span>${desc}</span></label>`;
+      row.querySelector("input").onchange = (e) => { PARAMS[sec.name][n] = e.target.checked ? 1 : 0; saveParams(); };
+    } else if (t === "c") {
+      row.innerHTML = `<label for="${id}">${n} <span>${desc}</span></label><input type="color" id="${id}" value="#${toHex(v)}"><output></output>`;
+      row.querySelector("input").oninput = (e) => { PARAMS[sec.name][n] = fromHex(e.target.value.slice(1)); saveParams(); };
+    } else {
+      const step = (hi - lo) / 200;
+      row.innerHTML = `<label for="${id}">${n} <span>${desc}</span></label><input type="range" id="${id}" min="${lo}" max="${hi}" step="${step}" value="${v}"><output for="${id}">${fmt(v)}</output>`;
+      const out = row.querySelector("output");
+      row.querySelector("input").oninput = (e) => {
+        PARAMS[sec.name][n] = +e.target.value; out.textContent = fmt(+e.target.value); saveParams();
+        if (t === "p" || (sec.name === "Global" && n.startsWith("Particle"))) { clearTimeout(rebuildTimer); rebuildTimer = setTimeout(() => rebuild("b"), 150); }
+      };
+    }
+    grid.append(row);
+  }
+}
+function exportCfg() {
+  let out = "## QuietElements settings exported from the preview: paste over the matching sections\n";
+  for (const sec of PARAM_SCHEMA) {
+    out += `\n[${sec.name}]\n`;
+    for (const [n, t] of sec.params) { const v = PARAMS[sec.name][n]; out += `${n} = ${t === "c" ? toHex(v) + "FF" : t === "b" ? (v ? "true" : "false") : fmt(v)}\n`; }
+  }
+  return out;
+}
+function bindTune() {
+  renderTune();
+  const msg = document.getElementById("copyMsg"), ta = document.getElementById("cfgOut");
+  document.getElementById("copyCfg").onclick = () => {
+    const text = exportCfg(); ta.value = text;
+    const fallback = () => { ta.hidden = false; ta.focus(); ta.select(); msg.textContent = "Select the text below and copy it."; };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => { msg.textContent = "Config copied. Paste it into claude.quietelements.cfg."; }, fallback); else fallback();
+  };
+  const reset = (names) => { for (const s of names) for (const [n, , d] of PARAM_SCHEMA.find((x) => x.name === s).params) PARAMS[s][n] = Array.isArray(d) ? d.slice() : d; saveParams(); renderTune(); rebuild("b"); };
+  document.getElementById("resetSec").onclick = () => reset([tuneTab]);
+  document.getElementById("resetAll").onclick = () => reset(PARAM_SCHEMA.map((x) => x.name));
+}
+function bindUI() {
+  const chips = document.getElementById("chips");
+  for (const el of ELEMENTS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = el.label; b.style.setProperty("--c", el.color);
+    b.setAttribute("aria-pressed", state.on[el.key]);
+    b.onclick = () => { state.on[el.key] = !state.on[el.key]; if (state.on[el.key]) onSince[el.key] = time; b.setAttribute("aria-pressed", state.on[el.key]); rebuild(); };
+    chips.append(b);
+  }
+  const sel = document.getElementById("target");
+  for (const [k, c] of Object.entries(CREATURES)) sel.add(new Option(`${k} (hitbox r ${c.r} m)`, k));
+  sel.value = state.target;
+  sel.onchange = () => { state.target = sel.value; setDist(CREATURES[sel.value].dist); rebuild(); };
+  document.querySelectorAll("#tod button").forEach((b) => b.onclick = () => {
+    state.tod = b.dataset.v; document.querySelectorAll("#tod button").forEach((x) => x.setAttribute("aria-pressed", x === b)); scene = makeScene();
+  });
+  const dist = document.getElementById("dist");
+  const setDist = (v) => { state.dist = +v; dist.value = v; document.getElementById("distOut").textContent = (+v).toFixed(1) + " m"; scene = makeScene(); };
+  dist.oninput = () => setDist(dist.value);
+  setDist(state.dist);
+  document.querySelectorAll("#tod button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.v === state.tod));
+  for (const [id, key] of [["mSize", "size"], ["mEmit", "emit"], ["mLight", "light"]]) {
+    const inp = document.getElementById(id);
+    inp.oninput = () => { state.mod[key] = +inp.value; document.getElementById(id + "Out").textContent = (+inp.value).toFixed(2); rebuild("b"); };
+  }
+  document.querySelectorAll("#mode button").forEach((b) => b.onclick = () => {
+    state.mode = b.dataset.v; document.querySelectorAll("#mode button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    syncMode(); rebuild("b");
+  });
+  const play = document.getElementById("play");
+  const sync = () => play.textContent = state.playing ? "Pause" : "Play";
+  play.onclick = () => { state.playing = !state.playing; sync(); }; sync();
+}
+
+bindUI(); syncMode(); bindTune();
+try {
+  views = [new View(document.getElementById("cvA"), false), new View(document.getElementById("cvB"), true)];
+  rebuild();
+  requestAnimationFrame(frame);
+} catch (e) {
+  rebuild();
+  document.querySelectorAll(".view").forEach((v) => v.innerHTML = `<p class="nogl">This replay needs WebGL2, which this browser didn't provide (${String(e.message).slice(0, 120)}). The table below still lists every effect.</p>`);
+}
+</script>

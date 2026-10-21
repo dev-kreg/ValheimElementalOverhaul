@@ -1,0 +1,18 @@
+# build output
+bin/
+obj/
+dist/
+*.user
+
+# Unity
+shader/Library/
+shader/Temp/
+shader/Logs/
+shader/Build/
+shader/UserSettings/
+shader/build.log
+
+# Anything extracted from the game stays local (meshes, textures, particle data) and so do review captures
+shader/preview/data/
+shader/preview/elemental-vfx.html
+shader/review/

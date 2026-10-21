@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>QETestbed</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Override for your machine: dotnet build -p:GameDir=... -p:Profile=... -->
+    <GameDir Condition="'$(GameDir)' == ''">/mnt/Games/SteamLibrary/steamapps/common/Valheim</GameDir>
+    <Managed>$(GameDir)/valheim_Data/Managed</Managed>
+    <Profile Condition="'$(Profile)' == ''">$(HOME)/.config/r2modmanPlus-local/Valheim/profiles/WhaDa</Profile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(Profile)/BepInEx/core/BepInEx.dll" Private="false" />
+    <Reference Include="$(Profile)/BepInEx/core/0Harmony.dll" Private="false" />
+    <Reference Include="$(Managed)/assembly_valheim.dll" Private="false" />
+    <Reference Include="$(Managed)/assembly_utils.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.ParticleSystemModule.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.AssetBundleModule.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.ScreenCaptureModule.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.ImageConversionModule.dll" Private="false" />
+  </ItemGroup>
+  <!-- Deploy into the r2modman profile. Remove the mod by deleting BepInEx/plugins/QETestbed. -->
+  <Target Name="Deploy" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(Profile)/BepInEx/plugins/QETestbed" />
+  </Target>
+</Project>
